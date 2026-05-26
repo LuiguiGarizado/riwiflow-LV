@@ -1,0 +1,34 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "name": "luigui Garizado",
+      "email": "luigui@riwi.io",
+      "password": "123654",
+      "role": "admin"
+    },
+    {
+      "id": 2,
+      "name": "victoria sutachan ",
+      "email": "victoria@riwi.io",
+      "password": "12365",
+      "role": "coder"
+    }
+  ],
+  "tasks": [
+    {
+      "id": 1,
+      "title": "",
+      "description": "",
+      "status": "pending",
+      "userId": 2
+    },
+    {
+      "id": 2,
+      "title": "",
+      "description": "",
+      "status": "done",
+      "userId": 2
+    }
+  ]
+}
