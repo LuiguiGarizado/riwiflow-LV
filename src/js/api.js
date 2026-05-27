@@ -19,7 +19,7 @@ export const ApiService = {
 
     async updateTask(id, taskData) {
         const response = await fetch(`${BASE_URL}/tasks/${id}`, {
-            method: "PUT",
+            method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(taskData)
         });

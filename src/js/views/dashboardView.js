@@ -92,10 +92,8 @@ export const DashboardView = {
     async init() {
         const user = AppSPA.getUserSession();
         
-        // Log Out Handling
         document.getElementById("btn-logout").addEventListener("click", () => AppSPA.clearSession());
 
-        // US-03: Task creation restriction for Coder
         const createBtn = document.getElementById("btn-create-task");
         if (user.role !== "admin") {
             createBtn.style.display = "none";
@@ -109,7 +107,7 @@ export const DashboardView = {
     async loadBoardData() {
         const tasks = await ApiService.getTasks();
         const users = await ApiService.getUsers();
-
+        
         const containers = {
             "todo": document.getElementById("col-todo"),
             "in progress": document.getElementById("col-inprogress"),
@@ -117,7 +115,6 @@ export const DashboardView = {
             "done": document.getElementById("col-done")
         };
 
-        // Reset
         Object.values(containers).forEach(c => c.innerHTML = "");
         const counts = { "todo": 0, "in progress": 0, "in review": 0, "done": 0 };
 
@@ -127,7 +124,9 @@ export const DashboardView = {
             const name = assigned ? assigned.name : "Unassigned";
 
             const card = document.createElement("div");
-            card.className = "task-card bg-surface border border-outline-variant rounded-xl p-md shadow-sm cursor-pointer";
+            card.className = "task-card bg-surface border border-outline-variant rounded-xl p-md shadow-sm cursor-grab";
+            card.dataset.taskId = task.id;
+            card.dataset.userId = task.userId;
             card.innerHTML = `
                 <div class="flex items-start justify-between mb-xs">
                   <span class="bg-primary-fixed text-on-primary-fixed-variant px-2 py-0.5 rounded-full font-label-sm text-label-sm uppercase text-[10px]">${task.status}</span>
@@ -147,7 +146,6 @@ export const DashboardView = {
             }
         });
 
-        // Update numerical counters
         const badges = document.querySelectorAll(".count-badge");
         if(badges.length === 4) {
             badges[0].textContent = counts["todo"];
@@ -155,23 +153,77 @@ export const DashboardView = {
             badges[2].textContent = counts["in review"];
             badges[3].textContent = counts["done"];
         }
+
+        this.initDragAndDrop();
     },
 
-  handleCardClick(task, users) {
-    const user = AppSPA.getUserSession();
+    initDragAndDrop() {
+        const user = AppSPA.getUserSession();
 
-    if (user.role === "admin") {
-        this.openEditModal(task, users, true, true);
-    } else if (user.role === "coder") {
-        if (task.userId == user.id) {
-            
-          this.openEditModal(task, users, true, true); 
-            
-        } else {
-            alert("You do not have permission to modify other coders' tasks.");
+        const colStatusMap = {
+            "col-todo": "todo",
+            "col-inprogress": "in progress",
+            "col-inreview": "in review",
+            "col-done": "done"
+        };
+
+        document.querySelectorAll(".dynamic-task-container").forEach(col => {
+            col.addEventListener("dragover", (e) => {
+                e.preventDefault();
+                col.classList.add("ring-2", "ring-primary", "ring-inset");
+            });
+
+            col.addEventListener("dragleave", () => {
+                col.classList.remove("ring-2", "ring-primary", "ring-inset");
+            });
+
+            col.addEventListener("drop", async (e) => {
+                e.preventDefault();
+                col.classList.remove("ring-2", "ring-primary", "ring-inset");
+
+                const taskId = e.dataTransfer.getData("taskId");
+                const taskUserId = e.dataTransfer.getData("taskUserId");
+                const newStatus = colStatusMap[col.id];
+
+                // AJUSTE SEGURIDAD: Si es coder, sólo puede mover sus propias tareas
+                if (user.role === "coder" && String(taskUserId) !== String(user.id)) {
+                    alert("No tienes permisos para mover las tareas de otros coders.");
+                    return;
+                }
+
+                await ApiService.updateTask(String(taskId), { status: newStatus });
+                await this.loadBoardData();
+            });
+        });
+
+        document.querySelectorAll(".task-card").forEach(card => {
+            card.setAttribute("draggable", "true");
+
+            card.addEventListener("dragstart", (e) => {
+                e.dataTransfer.setData("taskId", card.dataset.taskId);
+                e.dataTransfer.setData("taskUserId", card.dataset.userId);
+                card.classList.add("opacity-50", "scale-95");
+            });
+
+            card.addEventListener("dragend", () => {
+                card.classList.remove("opacity-50", "scale-95");
+            });
+        });
+    },
+
+    handleCardClick(task, users) {
+        const user = AppSPA.getUserSession();
+
+        if (user.role === "admin") {
+            this.openEditModal(task, users, true, true);
+        } else if (user.role === "coder") {
+            if (String(task.userId) === String(user.id)) {
+                this.openEditModal(task, users, true, true);
+            } else {
+                alert("No tienes permisos para modificar las tareas de otros coders.");
+            }
         }
-    }
-},
+    },
 
     openEditModal(task, users, canEditAll, canEditStatusAndDesc) {
         const wrapper = document.getElementById("modal-wrapper");
@@ -180,7 +232,7 @@ export const DashboardView = {
             <div class="bg-surface-container-lowest border border-outline-variant p-xl rounded-xl w-full max-w-[440px] space-y-md">
               <h3 class="text-title-sm font-bold text-primary">Edit Task</h3>
               <form id="modal-form" class="space-y-md">
-                <input type="text" id="m-title" value="${task.title}" ${!canEditAll ? 'disabled class="opacity-50"' : ''} class="w-full border p-2 rounded" placeholder="Title" required/>
+                <input type="text" id="m-title" value="${task.title}" ${!canEditAll ? 'disabled class="opacity-50 bg-gray-100"' : ''} class="w-full border p-2 rounded" placeholder="Title" required/>
                 <textarea id="m-desc" ${!canEditStatusAndDesc ? 'disabled' : ''} class="w-full border p-2 rounded" placeholder="Description" required>${task.description}</textarea>
                 
                 <select id="m-status" ${!canEditStatusAndDesc ? 'disabled' : ''} class="w-full border p-2 rounded">
@@ -190,7 +242,7 @@ export const DashboardView = {
                     <option value="done" ${task.status === "done" ? "selected" : ""}>Done</option>
                 </select>
 
-                <select id="m-user" ${!canEditAll ? 'disabled class="opacity-50"' : ''} class="w-full border p-2 rounded">
+                <select id="m-user" ${!canEditAll ? 'disabled class="opacity-50 bg-gray-100"' : ''} class="w-full border p-2 rounded">
                     ${users.map(u => `<option value="${u.id}" ${task.userId === u.id ? "selected" : ""}>${u.name} (${u.role})</option>`).join('')}
                 </select>
 
@@ -206,12 +258,15 @@ export const DashboardView = {
         document.getElementById("m-close").addEventListener("click", () => wrapper.innerHTML = "");
         document.getElementById("modal-form").addEventListener("submit", async (e) => {
             e.preventDefault();
+            
+            // Si el input está deshabilitado, tomamos el valor original para evitar que mande vacíos o alterados
             const payload = {
                 title: document.getElementById("m-title").value,
                 description: document.getElementById("m-desc").value,
                 status: document.getElementById("m-status").value,
-                userId: parseInt(document.getElementById("m-user").value)
+                userId: String(document.getElementById("m-user").value)
             };
+            
             if (await ApiService.updateTask(task.id, payload)) {
                 wrapper.innerHTML = "";
                 await this.loadBoardData();
@@ -231,7 +286,7 @@ export const DashboardView = {
                     <textarea id="c-desc" class="w-full border p-2 rounded" placeholder="Description" required></textarea>
                     
                     <select id="c-user" class="w-full border p-2 rounded">
-                        ${users.filter(u => u.role === "coder").map(u => `<option value="${u.id}">${u.name}</option>`).join('')}
+                        ${users.filter(u => u.role === "coder" || u.role === "admin").map(u => `<option value="${u.id}">${u.name} (${u.role})</option>`).join('')}
                     </select>
 
                     <div class="flex gap-2">
@@ -249,7 +304,7 @@ export const DashboardView = {
                     title: document.getElementById("c-title").value,
                     description: document.getElementById("c-desc").value,
                     status: "todo", 
-                    userId: parseInt(document.getElementById("c-user").value)
+                    userId: String(document.getElementById("c-user").value)
                 };
                 if (await ApiService.createTask(payload)) {
                     wrapper.innerHTML = "";

@@ -17,60 +17,18 @@
   ],
   "tasks": [
     {
-      "title": "User Flow Mapping",
-      "description": "Define the end-to-end journey for the new onboarding experience.",
-      "status": "in review",
-      "userId": 1,
-      "id": "1"
+      "title": "backend",
+      "description": "OHUUPASFINIKL",
+      "status": "todo",
+      "userId": "1",
+      "id": "8NHSzBwUNSM"
     },
     {
-      "title": "Social Media Assets",
-      "description": "Prepare Q3 promotional graphics for LinkedIn and Twitter.",
+      "title": "kkkk",
+      "description": "gfxgxg",
       "status": "in progress",
-      "userId": 1,
-      "id": "2"
-    },
-    {
-      "title": "Building fronted ",
-      "description": "Please make sure to fix log in button",
-      "status": "in progress",
-      "userId": 2,
-      "id": "ivVotS92hGw"
-    },
-    {
-      "title": "Building fronted ",
-      "description": "Fix login button ",
-      "status": "in review",
-      "userId": 1,
-      "id": "Ijv0y4UPHCs"
-    },
-    {
-      "title": "fronted ",
-      "description": "make sure to fix the log in button",
-      "status": "in review",
-      "userId": 1,
-      "id": "WEMpVrCWMJw"
-    },
-    {
-      "title": "Building fronted ",
-      "description": "fix the log in button}",
-      "status": "todo",
-      "userId": 1,
-      "id": "lBcAGHTY8NE"
-    },
-    {
-      "title": "Building fronted ",
-      "description": "make sure to fix the log in button",
-      "status": "todo",
-      "userId": 1,
-      "id": "_4rSixNKLLE"
-    },
-    {
-      "title": "Building fronted ",
-      "description": "mjeaj80gs9pgrspgrpogr",
-      "status": "todo",
-      "userId": 2,
-      "id": "6nYHQOS4TiQ"
+      "userId": "2",
+      "id": "R8a4CtX0_t8"
     }
   ],
   "$schema": "./node_modules/json-server/schema.json"
