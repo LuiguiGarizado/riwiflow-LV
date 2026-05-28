@@ -2,11 +2,12 @@ import { ApiService } from "../api.js";
 import { AppSPA } from "../app.js";
 
 export const DashboardView = {
-    render() {
-        const body = document.getElementById("body-layout");
-        body.className = "bg-background text-on-background overflow-hidden h-screen flex";
+  render() {
+    const body = document.getElementById("body-layout");
+    body.className =
+      "bg-background text-on-background overflow-hidden h-screen flex";
 
-        return `
+    return `
         <aside class="hidden md:flex flex-col pt-md pb-xl gap-xs h-full bg-surface-container-low border-r border-outline-variant w-[280px] shrink-0">
           <div class="px-gutter mb-xl">
             <h1 class="font-headline-md text-headline-md font-bold text-primary">Riwiflow</h1>
@@ -87,47 +88,50 @@ export const DashboardView = {
         </main>
         <div id="modal-wrapper"></div>
         `;
-    },
+  },
 
-    async init() {
-        const user = AppSPA.getUserSession();
-        
-        document.getElementById("btn-logout").addEventListener("click", () => AppSPA.clearSession());
+  async init() {
+    const user = AppSPA.getUserSession();
 
-        const createBtn = document.getElementById("btn-create-task");
-        if (user.role !== "admin") {
-            createBtn.style.display = "none";
-        } else {
-            createBtn.addEventListener("click", () => this.openCreateModal());
-        }
+    document
+      .getElementById("btn-logout")
+      .addEventListener("click", () => AppSPA.clearSession());
 
-        await this.loadBoardData();
-    },
+    const createBtn = document.getElementById("btn-create-task");
+    if (user.role !== "admin") {
+      createBtn.style.display = "none";
+    } else {
+      createBtn.addEventListener("click", () => this.openCreateModal());
+    }
 
-    async loadBoardData() {
-        const tasks = await ApiService.getTasks();
-        const users = await ApiService.getUsers();
-        
-        const containers = {
-            "todo": document.getElementById("col-todo"),
-            "in progress": document.getElementById("col-inprogress"),
-            "in review": document.getElementById("col-inreview"),
-            "done": document.getElementById("col-done")
-        };
+    await this.loadBoardData();
+  },
 
-        Object.values(containers).forEach(c => c.innerHTML = "");
-        const counts = { "todo": 0, "in progress": 0, "in review": 0, "done": 0 };
+  async loadBoardData() {
+    const tasks = await ApiService.getTasks();
+    const users = await ApiService.getUsers();
 
-        tasks.forEach(task => {
-            const statusKey = task.status.toLowerCase();
-            const assigned = users.find(u => u.id === task.userId);
-            const name = assigned ? assigned.name : "Unassigned";
+    const containers = {
+      todo: document.getElementById("col-todo"),
+      "in progress": document.getElementById("col-inprogress"),
+      "in review": document.getElementById("col-inreview"),
+      done: document.getElementById("col-done"),
+    };
 
-            const card = document.createElement("div");
-            card.className = "task-card bg-surface border border-outline-variant rounded-xl p-md shadow-sm cursor-grab";
-            card.dataset.taskId = task.id;
-            card.dataset.userId = task.userId;
-            card.innerHTML = `
+    Object.values(containers).forEach((c) => (c.innerHTML = ""));
+    const counts = { todo: 0, "in progress": 0, "in review": 0, done: 0 };
+
+    tasks.forEach((task) => {
+      const statusKey = task.status.toLowerCase();
+      const assigned = users.find((u) => u.id === task.userId);
+      const name = assigned ? assigned.name : "Unassigned";
+
+      const card = document.createElement("div");
+      card.className =
+        "task-card bg-surface border border-outline-variant rounded-xl p-md shadow-sm cursor-grab";
+      card.dataset.taskId = task.id;
+      card.dataset.userId = task.userId;
+      card.innerHTML = `
                 <div class="flex items-start justify-between mb-xs">
                   <span class="bg-primary-fixed text-on-primary-fixed-variant px-2 py-0.5 rounded-full font-label-sm text-label-sm uppercase text-[10px]">${task.status}</span>
                 </div>
@@ -138,112 +142,112 @@ export const DashboardView = {
                 </div>
             `;
 
-            card.addEventListener("click", () => this.handleCardClick(task, users));
+      card.addEventListener("click", () => this.handleCardClick(task, users));
 
-            if (containers[statusKey]) {
-                containers[statusKey].appendChild(card);
-                counts[statusKey]++;
-            }
-        });
+      if (containers[statusKey]) {
+        containers[statusKey].appendChild(card);
+        counts[statusKey]++;
+      }
+    });
 
-        const badges = document.querySelectorAll(".count-badge");
-        if(badges.length === 4) {
-            badges[0].textContent = counts["todo"];
-            badges[1].textContent = counts["in progress"];
-            badges[2].textContent = counts["in review"];
-            badges[3].textContent = counts["done"];
+    const badges = document.querySelectorAll(".count-badge");
+    if (badges.length === 4) {
+      badges[0].textContent = counts["todo"];
+      badges[1].textContent = counts["in progress"];
+      badges[2].textContent = counts["in review"];
+      badges[3].textContent = counts["done"];
+    }
+
+    this.initDragAndDrop();
+  },
+
+  initDragAndDrop() {
+    const user = AppSPA.getUserSession();
+
+    const colStatusMap = {
+      "col-todo": "todo",
+      "col-inprogress": "in progress",
+      "col-inreview": "in review",
+      "col-done": "done",
+    };
+
+    document.querySelectorAll(".dynamic-task-container").forEach((col) => {
+      col.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        col.classList.add("ring-2", "ring-primary", "ring-inset");
+      });
+
+      col.addEventListener("dragleave", () => {
+        col.classList.remove("ring-2", "ring-primary", "ring-inset");
+      });
+
+      col.addEventListener("drop", async (e) => {
+        e.preventDefault();
+        col.classList.remove("ring-2", "ring-primary", "ring-inset");
+
+        const taskId = e.dataTransfer.getData("taskId");
+        const taskUserId = e.dataTransfer.getData("taskUserId");
+        const newStatus = colStatusMap[col.id];
+
+        // AJUSTE SEGURIDAD: Si es coder, sólo puede mover sus propias tareas
+        if (user.role === "coder" && String(taskUserId) !== String(user.id)) {
+          alert("No tienes permisos para mover las tareas de otros coders.");
+          return;
         }
 
-        this.initDragAndDrop();
-    },
+        await ApiService.updateTask(String(taskId), { status: newStatus });
+        await this.loadBoardData();
+      });
+    });
 
-    initDragAndDrop() {
-        const user = AppSPA.getUserSession();
+    document.querySelectorAll(".task-card").forEach((card) => {
+      card.setAttribute("draggable", "true");
 
-        const colStatusMap = {
-            "col-todo": "todo",
-            "col-inprogress": "in progress",
-            "col-inreview": "in review",
-            "col-done": "done"
-        };
+      card.addEventListener("dragstart", (e) => {
+        e.dataTransfer.setData("taskId", card.dataset.taskId);
+        e.dataTransfer.setData("taskUserId", card.dataset.userId);
+        card.classList.add("opacity-50", "scale-95");
+      });
 
-        document.querySelectorAll(".dynamic-task-container").forEach(col => {
-            col.addEventListener("dragover", (e) => {
-                e.preventDefault();
-                col.classList.add("ring-2", "ring-primary", "ring-inset");
-            });
+      card.addEventListener("dragend", () => {
+        card.classList.remove("opacity-50", "scale-95");
+      });
+    });
+  },
 
-            col.addEventListener("dragleave", () => {
-                col.classList.remove("ring-2", "ring-primary", "ring-inset");
-            });
+  handleCardClick(task, users) {
+    const user = AppSPA.getUserSession();
 
-            col.addEventListener("drop", async (e) => {
-                e.preventDefault();
-                col.classList.remove("ring-2", "ring-primary", "ring-inset");
+    if (user.role === "admin") {
+      this.openEditModal(task, users, true, true);
+    } else if (user.role === "coder") {
+      if (String(task.userId) === String(user.id)) {
+        this.openEditModal(task, users, true, true);
+      } else {
+        alert("No tienes permisos para modificar las tareas de otros coders.");
+      }
+    }
+  },
 
-                const taskId = e.dataTransfer.getData("taskId");
-                const taskUserId = e.dataTransfer.getData("taskUserId");
-                const newStatus = colStatusMap[col.id];
-
-                // AJUSTE SEGURIDAD: Si es coder, sólo puede mover sus propias tareas
-                if (user.role === "coder" && String(taskUserId) !== String(user.id)) {
-                    alert("No tienes permisos para mover las tareas de otros coders.");
-                    return;
-                }
-
-                await ApiService.updateTask(String(taskId), { status: newStatus });
-                await this.loadBoardData();
-            });
-        });
-
-        document.querySelectorAll(".task-card").forEach(card => {
-            card.setAttribute("draggable", "true");
-
-            card.addEventListener("dragstart", (e) => {
-                e.dataTransfer.setData("taskId", card.dataset.taskId);
-                e.dataTransfer.setData("taskUserId", card.dataset.userId);
-                card.classList.add("opacity-50", "scale-95");
-            });
-
-            card.addEventListener("dragend", () => {
-                card.classList.remove("opacity-50", "scale-95");
-            });
-        });
-    },
-
-    handleCardClick(task, users) {
-        const user = AppSPA.getUserSession();
-
-        if (user.role === "admin") {
-            this.openEditModal(task, users, true, true);
-        } else if (user.role === "coder") {
-            if (String(task.userId) === String(user.id)) {
-                this.openEditModal(task, users, true, true);
-            } else {
-                alert("No tienes permisos para modificar las tareas de otros coders.");
-            }
-        }
-    },
-
-    openEditModal(task, users, canEditAll, canEditStatusAndDesc) {
-        const wrapper = document.getElementById("modal-wrapper");
-        wrapper.innerHTML = `
+  openEditModal(task, users, canEditAll, canEditStatusAndDesc) {
+    const wrapper = document.getElementById("modal-wrapper");
+    wrapper.innerHTML = `
           <div class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-md">
             <div class="bg-surface-container-lowest border border-outline-variant p-xl rounded-xl w-full max-w-[440px] space-y-md">
               <h3 class="text-title-sm font-bold text-primary">Edit Task</h3>
               <form id="modal-form" class="space-y-md">
-                <input type="text" id="m-title" value="${task.title}" ${!canEditAll ? 'disabled class="opacity-50 bg-gray-100"' : ''} class="w-full border p-2 rounded" placeholder="Title" required/>
-                <textarea id="m-desc" ${!canEditStatusAndDesc ? 'disabled' : ''} class="w-full border p-2 rounded" placeholder="Description" required>${task.description}</textarea>
+                <input type="text" id="m-title" value="${task.title}" ${!canEditAll ? 'disabled class="opacity-50 bg-gray-100"' : ""} class="w-full border p-2 rounded" placeholder="Title" required/>
+                <textarea id="m-desc" ${!canEditStatusAndDesc ? "disabled" : ""} class="w-full border p-2 rounded" placeholder="Description" required>${task.description}</textarea>
                 
-                <select id="m-status" ${!canEditStatusAndDesc ? 'disabled' : ''} class="w-full border p-2 rounded">
+                <select id="m-status" ${!canEditStatusAndDesc ? "disabled" : ""} class="w-full border p-2 rounded">
                     <option value="todo" ${task.status === "todo" ? "selected" : ""}>Todo</option>
                     <option value="in progress" ${task.status === "in progress" ? "selected" : ""}>In Progress</option>
                     <option value="in review" ${task.status === "in review" ? "selected" : ""}>In Review</option>
                     <option value="done" ${task.status === "done" ? "selected" : ""}>Done</option>
                 </select>
 
-                <select id="m-user" ${!canEditAll ? 'disabled class="opacity-50 bg-gray-100"' : ''} class="w-full border p-2 rounded">
-                    ${users.map(u => `<option value="${u.id}" ${task.userId === u.id ? "selected" : ""}>${u.name} (${u.role})</option>`).join('')}
+                <select id="m-user" ${!canEditAll ? 'disabled class="opacity-50 bg-gray-100"' : ""} class="w-full border p-2 rounded">
+                    ${users.map((u) => `<option value="${u.id}" ${task.userId === u.id ? "selected" : ""}>${u.name} (${u.role})</option>`).join("")}
                 </select>
 
                 <div class="flex gap-2">
@@ -255,29 +259,33 @@ export const DashboardView = {
           </div>
         `;
 
-        document.getElementById("m-close").addEventListener("click", () => wrapper.innerHTML = "");
-        document.getElementById("modal-form").addEventListener("submit", async (e) => {
-            e.preventDefault();
-            
-            // Si el input está deshabilitado, tomamos el valor original para evitar que mande vacíos o alterados
-            const payload = {
-                title: document.getElementById("m-title").value,
-                description: document.getElementById("m-desc").value,
-                status: document.getElementById("m-status").value,
-                userId: String(document.getElementById("m-user").value)
-            };
-            
-            if (await ApiService.updateTask(task.id, payload)) {
-                wrapper.innerHTML = "";
-                await this.loadBoardData();
-            }
-        });
-    },
+    document
+      .getElementById("m-close")
+      .addEventListener("click", () => (wrapper.innerHTML = ""));
+    document
+      .getElementById("modal-form")
+      .addEventListener("submit", async (e) => {
+        e.preventDefault();
 
-    openCreateModal() {
-        ApiService.getUsers().then(users => {
-            const wrapper = document.getElementById("modal-wrapper");
-            wrapper.innerHTML = `
+        // Si el input está deshabilitado, tomamos el valor original para evitar que mande vacíos o alterados
+        const payload = {
+          title: document.getElementById("m-title").value,
+          description: document.getElementById("m-desc").value,
+          status: document.getElementById("m-status").value,
+          userId: String(document.getElementById("m-user").value),
+        };
+
+        if (await ApiService.updateTask(task.id, payload)) {
+          wrapper.innerHTML = "";
+          await this.loadBoardData();
+        }
+      });
+  },
+
+  openCreateModal() {
+    ApiService.getUsers().then((users) => {
+      const wrapper = document.getElementById("modal-wrapper");
+      wrapper.innerHTML = `
               <div class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-md">
                 <div class="bg-surface-container-lowest border border-outline-variant p-xl rounded-xl w-full max-w-[440px] space-y-md">
                   <h3 class="text-title-sm font-bold text-primary">New Task</h3>
@@ -286,7 +294,15 @@ export const DashboardView = {
                     <textarea id="c-desc" class="w-full border p-2 rounded" placeholder="Description" required></textarea>
                     
                     <select id="c-user" class="w-full border p-2 rounded">
-                        ${users.filter(u => u.role === "coder" || u.role === "admin").map(u => `<option value="${u.id}">${u.name} (${u.role})</option>`).join('')}
+                        ${users
+                          .filter(
+                            (u) => u.role === "coder" || u.role === "admin",
+                          )
+                          .map(
+                            (u) =>
+                              `<option value="${u.id}">${u.name} (${u.role})</option>`,
+                          )
+                          .join("")}
                     </select>
 
                     <div class="flex gap-2">
@@ -297,20 +313,24 @@ export const DashboardView = {
                 </div>
               </div>
             `;
-            document.getElementById("c-close").addEventListener("click", () => wrapper.innerHTML = "");
-            document.getElementById("create-form").addEventListener("submit", async (e) => {
-                e.preventDefault();
-                const payload = {
-                    title: document.getElementById("c-title").value,
-                    description: document.getElementById("c-desc").value,
-                    status: "todo", 
-                    userId: String(document.getElementById("c-user").value)
-                };
-                if (await ApiService.createTask(payload)) {
-                    wrapper.innerHTML = "";
-                    await this.loadBoardData();
-                }
-            });
+      document
+        .getElementById("c-close")
+        .addEventListener("click", () => (wrapper.innerHTML = ""));
+      document
+        .getElementById("create-form")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const payload = {
+            title: document.getElementById("c-title").value,
+            description: document.getElementById("c-desc").value,
+            status: "todo",
+            userId: String(document.getElementById("c-user").value),
+          };
+          if (await ApiService.createTask(payload)) {
+            wrapper.innerHTML = "";
+            await this.loadBoardData();
+          }
         });
-    }
+    });
+  },
 };

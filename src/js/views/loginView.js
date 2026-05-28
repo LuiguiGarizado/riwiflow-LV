@@ -2,12 +2,13 @@ import { ApiService } from "../api.js";
 import { AppSPA } from "../app.js";
 
 export const LoginView = {
-    render() {
-        // Securely adjust body classes for the login view
-        const body = document.getElementById("body-layout");
-        body.className = "bg-surface-container-lowest text-on-surface min-h-screen flex flex-col";
+  render() {
+    // Securely adjust body classes for the login view
+    const body = document.getElementById("body-layout");
+    body.className =
+      "bg-surface-container-lowest text-on-surface min-h-screen flex flex-col";
 
-        return `
+    return `
         <main class="flex-grow flex items-center justify-center px-gutter py-xxl w-full">
           <div class="w-full max-w-[440px] space-y-xl">
             <div class="text-center space-y-md">
@@ -61,28 +62,28 @@ export const LoginView = {
           <div class="absolute bottom-[-10%] left-[-10%] w-[30%] h-[30%] bg-primary-fixed/10 blur-[100px] rounded-full"></div>
         </div>
         `;
-    },
+  },
 
-    init() {
-        const form = document.getElementById("loginForm");
-        if (!form) return;
+  init() {
+    const form = document.getElementById("loginForm");
+    if (!form) return;
 
-        form.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const email = document.getElementById("email").value.trim();
-            const password = document.getElementById("password").value.trim();
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
 
-            const user = await ApiService.login(email, password);
-            if (user) {
-                AppSPA.setSession({
-                    id: user.id,
-                    name: user.name,
-                    email: user.email,
-                    role: user.role
-                });
-            } else {
-                alert("Incorrect credentials.");
-            }
+      const user = await ApiService.login(email, password);
+      if (user) {
+        AppSPA.setSession({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
         });
-    }
+      } else {
+        alert("Incorrect credentials.");
+      }
+    });
+  },
 };

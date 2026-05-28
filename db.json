@@ -19,16 +19,23 @@
     {
       "title": "backend",
       "description": "OHUUPASFINIKL",
-      "status": "todo",
+      "status": "in review",
       "userId": "1",
       "id": "8NHSzBwUNSM"
     },
     {
       "title": "kkkk",
       "description": "gfxgxg",
+      "status": "todo",
+      "userId": "1",
+      "id": "R8a4CtX0_t8"
+    },
+    {
+      "title": "backend",
+      "description": "rerewwerew",
       "status": "in progress",
       "userId": "2",
-      "id": "R8a4CtX0_t8"
+      "id": "3EnnnTkxtrc"
     }
   ],
   "$schema": "./node_modules/json-server/schema.json"
